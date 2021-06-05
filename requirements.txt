@@ -1,0 +1,2 @@
+synapseclient==2.3.1
+sevenbridges-python==2.3.0

@@ -12,6 +12,6 @@ This is a a proof-of-concept flow for some RNA-seq data using this [KF RNA-Seq w
     - if there should be status updates back to Synapse (e.g. 58% of processing is done)
 1. Return of results [BAMs, TSVs] to Synapse, or elsewhere.
 
-More details of this task can be found https://github.com/include-dcc/stwg-issue-tracking/issues/7
+More details of this task can be found [here](https://github.com/include-dcc/stwg-issue-tracking/issues/7)
 
 ## Synapse - CAVATICA Shiny
