@@ -48,6 +48,9 @@ def _sbg_paginated_query(query_func, limit=100, offset=0, **kwargs):
          yield result
 
 
+def copy_or_get_app():
+
+
 def main():
    # Setup Seven bridges API
    # https://github.com/sbg/okAPI/blob/a6c0816235ae8742913950d38cc5f57b5ab6314e/Recipes/CGC/Setup_API_environment.ipynb
@@ -77,6 +80,7 @@ def main():
 
    if duplicate_app:
       print('App already exists in second project, please try another app')
+      copied_app = duplicate_app[0]
    else:
       #  Copy the app if it doesn't exist
       print(f'App ({app_name}) does not exist in '
@@ -91,3 +95,24 @@ def main():
          print('Sucessfully copied one app!')
       else:
          print('Something went wrong...')
+
+   print(copied_app)
+
+   # # Create task
+   # project.create_task(
+   #    name="rna seq flow",
+   #    app=copied_app.id,
+   #    inputs=""
+   # )
+
+# In [82]: ?project.create_task
+# :param name: Task name.
+# :param app: CWL app identifier.
+# :param revision: CWL app revision.
+# :param batch_input: Batch input.
+# :param batch_by: Batch criteria.
+# :param inputs: Input map.
+# :param description: Task description.
+# :param run: True if you want to run a task upon creation.
+# :param disable_batch: True if you want to disable batching.
+# :
