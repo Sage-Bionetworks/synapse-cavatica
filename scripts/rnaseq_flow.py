@@ -96,18 +96,13 @@ def main():
       else:
          print('Something went wrong...')
 
-
    # Add step to download some fastq files from Synapse
    syn = synapseclient.login()
    read1 = syn.get("syn11223576")
    read2 = syn.get("syn11223563")
    # And upload to CAVATICA
-
-   fastq_1 = api.files.upload(path=read1.path,
-                              project=project.id)
-   fastq_2 = api.files.upload(path=read2.path,
-                              project=project.id)
-
+   api.files.upload(path=read1.path, project=project.id)
+   api.files.upload(path=read2.path, project=project.id)
 
    print(copied_app)
    sample_id = "HCC1143"
