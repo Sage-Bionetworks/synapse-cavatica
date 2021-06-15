@@ -49,7 +49,7 @@ def _sbg_paginated_query(query_func, limit=100, offset=0, **kwargs):
 
 
 def copy_or_get_app():
-
+   pass
 
 def main():
    # Setup Seven bridges API
@@ -96,23 +96,38 @@ def main():
       else:
          print('Something went wrong...')
 
+
+   # Add step to download some fastq files from Synapse
+   syn = synapseclient.login()
+   read1 = syn.get("syn11223576")
+   read2 = syn.get("syn11223563")
+   # And upload to CAVATICA
+
+   fastq_1 = api.files.upload(path=read1.path,
+                              project=project.id)
+   fastq_2 = api.files.upload(path=read2.path,
+                              project=project.id)
+
+
    print(copied_app)
-
-   # # Create task
-   # project.create_task(
-   #    name="rna seq flow",
-   #    app=copied_app.id,
-   #    inputs=""
-   # )
-
-# In [82]: ?project.create_task
-# :param name: Task name.
-# :param app: CWL app identifier.
-# :param revision: CWL app revision.
-# :param batch_input: Batch input.
-# :param batch_by: Batch criteria.
-# :param inputs: Input map.
-# :param description: Task description.
-# :param run: True if you want to run a task upon creation.
-# :param disable_batch: True if you want to disable batching.
-# :
+   sample_id = "HCC1143"
+   sample_files = api.files.query(project=project.id,
+                                  metadata={'sample_id': sample_id})
+   fastq_files = [sample_file for sample_file in sample_files
+                  if sample_file.name.endswith("fastq")]
+   inputs = {
+      "output_basename": "test",
+      "sample_name": sample_id,
+      "runThread": 1,
+      "input_type": "FASTQ",
+      "STAR_outSAMattrRGline": "ID:sample_name\tLB:aliquot_id\tPL:platform\tSM:BSID",
+      "wf_strand_param": "default",
+      "reads1": fastq_files[0],
+      "reads2": fastq_files[1]
+   }
+   # TODO: Missing rest call that automatically copies
+   # files
+   task = api.tasks.create(name="trial_run",
+                           project=project.id, app=copied_app.id,
+                           inputs=inputs,
+                           run=True)
