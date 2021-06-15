@@ -121,7 +121,7 @@ def main():
       "reads2": fastq_files[1]
    }
    # TODO: Missing rest call that automatically copies
-   # files
+   # reference files?
    task = api.tasks.create(name="trial_run",
                            project=project.id, app=copied_app.id,
                            inputs=inputs,
