@@ -17,6 +17,8 @@ Here are the high level steps:
 More details of this task can be found here:
 https://github.com/include-dcc/stwg-issue-tracking/issues/7
 """
+import os
+
 import sevenbridges as sbg
 import synapseclient
 
@@ -105,11 +107,12 @@ def main():
    api.files.upload(path=read2.path, project=project.id)
 
    print(copied_app)
-   sample_id = "HCC1143"
-   sample_files = api.files.query(project=project.id,
-                                  metadata={'sample_id': sample_id})
+   # Hard coded
+   sample_id = "C9DL6ANXX"
+   sample_files = api.files.query(project=project.id)
+                                  #metadata={'sample_id': sample_id})
    fastq_files = [sample_file for sample_file in sample_files
-                  if sample_file.name.endswith("fastq")]
+                  if sample_file.name in [os.path.basename(read1.name), os.path.basename(read2.name)]]
    inputs = {
       "output_basename": "test",
       "sample_name": sample_id,
