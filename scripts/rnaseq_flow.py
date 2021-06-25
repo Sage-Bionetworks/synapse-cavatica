@@ -37,19 +37,6 @@ def get_or_create_project(api, project_name):
    return project
 
 
-def _sbg_paginated_query(query_func, limit=100, offset=0, **kwargs):
-   """Seven bridges paginated queries"""
-   # Get inital results
-   collection = query_func(limit=limit, offset=offset, **kwargs)
-
-   while collection.total > (limit + offset):
-      collection = query_func(limit=limit, offset=offset, **kwargs)
-      offset += limit
-      # Yield all results in collections
-      for result in collection:
-         yield result
-
-
 def copy_or_get_app():
    pass
 
@@ -71,7 +58,7 @@ def main():
    # https://github.com/sbg/okAPI/blob/d3bcdeca309534603ae715cf2646c5f65e89d98f/Recipes/CGC/apps_copyFromPublicApps.ipynb
 
    # Query all public application
-   public_apps = _sbg_paginated_query(query_func=api.apps.query, visibility='public')
+   public_apps = api.apps.query(visibility='public').all()
 
    app = [public_app for public_app in public_apps
           if public_app.name == app_name][0]
@@ -129,3 +116,4 @@ def main():
                            project=project.id, app=copied_app.id,
                            inputs=inputs,
                            run=True)
+   # api.tasks
