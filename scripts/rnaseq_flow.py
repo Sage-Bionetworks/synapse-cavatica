@@ -18,6 +18,7 @@ More details of this task can be found here:
 https://github.com/include-dcc/stwg-issue-tracking/issues/7
 """
 import os
+import tempfile
 
 import sevenbridges as sbg
 import synapseclient
@@ -116,4 +117,30 @@ def main():
                            project=project.id, app=copied_app.id,
                            inputs=inputs,
                            run=True)
-   # api.tasks
+
+   # Hard coded task for now
+   task_id = "7adf84db-2a44-4083-8ddf-006008558999"
+   task = api.tasks.get(task_id)
+   task_outputs = task.outputs
+   # Download outputs except for bam files (large)
+   temp_dir = tempfile.TemporaryDirectory()
+   output_files = []
+   for _, output_value in task_outputs.items():
+      if output_value is not None:
+         if not output_value.name.endswith(".bam"):
+            output_file = api.files.get(output_value.id)
+            output_path = os.path.join(temp_dir.name, output_value.name)
+            output_file.download(output_path)
+            output_files.append(output_path)
+
+   # Store output files into synapse
+   synapse_project = "syn25920979"
+   synapse_task_folder = syn.store(
+      synapseclient.Folder(name=task_id, parent=synapse_project)
+   )
+   # Unfortunately no recursive store function currently...
+   for output_file in output_files:
+      syn.store(
+         synapseclient.File(path=output_file, parent=synapse_task_folder)
+      )
+   temp_dir.cleanup()
