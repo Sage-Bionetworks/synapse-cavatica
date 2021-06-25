@@ -25,7 +25,16 @@ import synapseclient
 
 
 def get_or_create_project(api, project_name):
-   """Get or create a CAVATICA project"""
+   """Get or create a CAVATICA project
+
+   Args:
+      api: Synapse bridges connection
+      project_name: Name of project
+
+   Returns:
+      CAVATICA Project
+
+   """
    # pull out target project
    project = [p for p in api.projects.query(limit=100).all() \
               if p.name == project_name]
@@ -38,26 +47,18 @@ def get_or_create_project(api, project_name):
    return project
 
 
-def copy_or_get_app():
-   pass
+def copy_or_get_app(api, app_name, project):
+   """Copy a public application if it doesnt exist in your project
+   or get the existing public app
 
-def main():
-   # Setup Seven bridges API
-   # https://github.com/sbg/okAPI/blob/a6c0816235ae8742913950d38cc5f57b5ab6314e/Recipes/CGC/Setup_API_environment.ipynb
-   # Pull credential from ~/.sevenbridges/credentials
-   config_file = sbg.Config(profile='cavatica')
-   api = sbg.Api(config=config_file)
+   Args:
+      api: Seven bridges connection
+      app_name: Name of public app
+      project: CAVATICA project
 
-   # CAVATICA project name
-   project_name = "Test"
-   # Public CAVATIC app-rnaseq workflow
-   app_name = "Kids First DRC RNAseq Workflow"
-
-   project = get_or_create_project(api, project_name)
-
-   # Copy an application to your CAVATICA project
-   # https://github.com/sbg/okAPI/blob/d3bcdeca309534603ae715cf2646c5f65e89d98f/Recipes/CGC/apps_copyFromPublicApps.ipynb
-
+   Returns:
+      CAVATICA App
+   """
    # Query all public application
    public_apps = api.apps.query(visibility='public').all()
 
@@ -72,9 +73,9 @@ def main():
       print('App already exists in second project, please try another app')
       copied_app = duplicate_app[0]
    else:
-      #  Copy the app if it doesn't exist
+      # Copy the app if it doesn't exist
       print(f'App ({app_name}) does not exist in '
-            f'Project ({project_name}); copying now')
+            f'Project ({project.name}); copying now')
       copied_app = app.copy(project = project.id, name = app_name)
 
       # re-list apps in target project to verify the copy worked
@@ -85,6 +86,26 @@ def main():
          print('Sucessfully copied one app!')
       else:
          print('Something went wrong...')
+   return copied_app
+
+
+def main():
+   # Setup Seven bridges API
+   # https://github.com/sbg/okAPI/blob/a6c0816235ae8742913950d38cc5f57b5ab6314e/Recipes/CGC/Setup_API_environment.ipynb
+   # Pull credential from ~/.sevenbridges/credentials
+   config_file = sbg.Config(profile='cavatica')
+   api = sbg.Api(config=config_file)
+
+   # CAVATICA project name
+   project_name = "Test"
+   # Public CAVATIC app-rnaseq workflow
+   app_name = "Kids First DRC RNAseq Workflow"
+
+   project = get_or_create_project(api=api, project_name=project_name)
+
+   # Copy an application to your CAVATICA project
+   # https://github.com/sbg/okAPI/blob/d3bcdeca309534603ae715cf2646c5f65e89d98f/Recipes/CGC/apps_copyFromPublicApps.ipynb
+   copied_app = copy_or_get_app(api=api, app_name=app_name, project=project)
 
    # Add step to download some fastq files from Synapse
    syn = synapseclient.login()
