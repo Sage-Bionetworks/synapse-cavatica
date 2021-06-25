@@ -119,7 +119,7 @@ def main():
                            run=True)
 
    # Hard coded task for now
-   task_id = "7adf84db-2a44-4083-8ddf-006008558999"
+   task_id = task.id
    task = api.tasks.get(task_id)
    task_outputs = task.outputs
    # Download outputs except for bam files (large)
