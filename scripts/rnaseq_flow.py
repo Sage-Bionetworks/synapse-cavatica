@@ -122,8 +122,8 @@ def store_synid_to_cavatica(syn, sbg_api, input_json, cavatica_project_id):
    return input_json
 
 
-def main():
-   """Main workflow"""
+def evaluate_submissions():
+   """Workflow to evaluate RECEIVED submissions"""
    # Setup Seven bridges API
    # https://github.com/sbg/okAPI/blob/a6c0816235ae8742913950d38cc5f57b5ab6314e/Recipes/CGC/Setup_API_environment.ipynb
    # Pull credential from ~/.sevenbridges/credentials
@@ -152,7 +152,7 @@ def main():
       sub_obj = syn.getSubmission(sub.id)
 
       workflow_input = read_json_submission(sub_obj.filePath)
-
+      # TODO: this can use DRS ids.
       inputs = store_synid_to_cavatica(syn=syn, sbg_api=api,
                                       input_json=workflow_input,
                                       cavatica_project_id=project.id)
@@ -217,5 +217,9 @@ def main():
       temp_dir.cleanup()
 
 
+def monitor_submissions():
+   pass
+
+
 if __name__ == "__main__":
-    main()
+   evaluate_submissions()
