@@ -20,7 +20,6 @@ https://github.com/include-dcc/stwg-issue-tracking/issues/7
 import json
 import os
 import tempfile
-import time
 
 import sevenbridges as sbg
 import synapseclient
@@ -184,8 +183,14 @@ def monitor_submissions(syn, api):
       if task.status == "INVALID":
          sub_status.status = "INVALID"
       elif task.status in ["RUNNING", "QUEUED"]:
-         print("task is running")
-         # move forward to next in the loop
+         execution_details = task.get_execution_details()
+         jobs_completed = [
+            job.status == "COMPLETED" for job in execution_details.jobs
+         ]
+         print(
+            "Task is running. "
+            f"{sum(jobs_completed)}/{len(jobs_completed)} jobs completed."
+         )
          continue
       elif task.status == "COMPLETED":
          sub_status.status = "ACCEPTED"
