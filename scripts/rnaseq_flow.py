@@ -17,8 +17,10 @@ Here are the high level steps:
 More details of this task can be found here:
 https://github.com/include-dcc/stwg-issue-tracking/issues/7
 """
+import json
 import os
 import tempfile
+import time
 
 import sevenbridges as sbg
 import synapseclient
@@ -89,7 +91,39 @@ def copy_or_get_app(api, app_name, project):
    return copied_app
 
 
+def read_json_submission(filepath):
+   """Reads JSON submission"""
+   try:
+      with open(filepath, "r") as sub_f:
+         submission_input = json.load(sub_f)
+      return submission_input
+   except Exception:
+      # Can add validation of input parameters based on workflow here...
+      raise ValueError("Input must be a valid json file")
+
+
+
+def store_synid_to_cavatica(syn, sbg_api, input_json, cavatica_project_id):
+   """Take any inputs that are synapse ids, download the entity,
+   store them onto cavatica and update input json"""
+   for key, value in input_json.items():
+      if str(value).startswith("syn"):
+         ent = syn.get(value)
+         # Upload to CAVATICA
+         sbg_api.files.upload(path=ent.path, project=cavatica_project_id)
+         # Query for the cavatica file id
+         files = sbg_api.files.query(project=cavatica_project_id)
+         fastq_files = [
+            cavatica_file for cavatica_file in files
+            if cavatica_file.name == os.path.basename(ent.name)
+         ]
+         # Replace the synapse id with the cavatica file id
+         input_json[key] = fastq_files[0]
+   return input_json
+
+
 def main():
+   """Main workflow"""
    # Setup Seven bridges API
    # https://github.com/sbg/okAPI/blob/a6c0816235ae8742913950d38cc5f57b5ab6314e/Recipes/CGC/Setup_API_environment.ipynb
    # Pull credential from ~/.sevenbridges/credentials
@@ -109,62 +143,78 @@ def main():
 
    # Add step to download some fastq files from Synapse
    syn = synapseclient.login()
-   read1 = syn.get("syn11223576")
-   read2 = syn.get("syn11223563")
-   # And upload to CAVATICA
-   api.files.upload(path=read1.path, project=project.id)
-   api.files.upload(path=read2.path, project=project.id)
 
-   print(copied_app)
-   # Hard coded
-   sample_id = "C9DL6ANXX"
-   sample_files = api.files.query(project=project.id)
-                                  #metadata={'sample_id': sample_id})
-   fastq_files = [sample_file for sample_file in sample_files
-                  if sample_file.name in [os.path.basename(read1.name), os.path.basename(read2.name)]]
-   inputs = {
-      "output_basename": "test",
-      "sample_name": sample_id,
-      "runThread": 1,
-      "input_type": "FASTQ",
-      "STAR_outSAMattrRGline": "ID:sample_name\tLB:aliquot_id\tPL:platform\tSM:BSID",
-      "wf_strand_param": "default",
-      "reads1": fastq_files[0],
-      "reads2": fastq_files[1]
-   }
-   # TODO: Missing rest call that automatically copies
-   # reference files?
-   task = api.tasks.create(name="trial_run",
-                           project=project.id, app=copied_app.id,
-                           inputs=inputs,
-                           run=True)
+   # Get all submissions
+   evaluation_queue_id = 9614883
+   sub_bundles = syn.getSubmissionBundles(evaluation_queue_id,
+                                          status='RECEIVED')
+   for sub, sub_status in sub_bundles:
+      sub_obj = syn.getSubmission(sub.id)
 
-   # Hard coded task for now
-   task_id = task.id
-   task = api.tasks.get(task_id)
-   task_outputs = task.outputs
-   # Download outputs except for bam files (large)
-   temp_dir = tempfile.TemporaryDirectory()
-   output_files = []
-   for _, output_value in task_outputs.items():
-      if output_value is not None:
-         if not output_value.name.endswith(".bam"):
-            output_file = api.files.get(output_value.id)
-            output_path = os.path.join(temp_dir.name, output_value.name)
-            output_file.download(output_path)
-            output_files.append(output_path)
+      workflow_input = read_json_submission(sub_obj.filePath)
 
-   # Store output files into synapse
-   synapse_project = "syn25920979"
-   synapse_task_folder = syn.store(
-      synapseclient.Folder(name=task_id, parent=synapse_project)
-   )
-   # Unfortunately no recursive store function currently...
-   for output_file in output_files:
-      syn.store(
-         synapseclient.File(path=output_file, parent=synapse_task_folder)
+      inputs = store_synid_to_cavatica(syn=syn, sbg_api=api,
+                                      input_json=workflow_input,
+                                      cavatica_project_id=project.id)
+
+      print(copied_app)
+      # Create task_id output folder to potentially store task output
+      # files into synapse
+      synapse_project = "syn25920979"
+      synapse_task_folder = syn.store(
+         synapseclient.Folder(name=task_id, parent=synapse_project)
       )
-   temp_dir.cleanup()
+      # TODO: Missing rest call that automatically copies
+      # reference files?
+      # Name the cavatica task the submission id
+      task = api.tasks.create(name=sub.id, project=project.id,
+                              app=copied_app.id, inputs=inputs, run=True)
+      task_id = task.id
+      task = api.tasks.get(task_id)
+
+      # Create dict for submission annotations
+      if not sub_status.get("submissionAnnotations"):
+         sub_status.submissionAnnotations = {}
+
+      # Update submission status to evaluation in progress
+      sub_status.submissionAnnotations["task_id"] = task_id
+      sub_status.submissionAnnotations["task_output"] = synapse_task_folder.id
+      sub_status.status = "EVALUATION_IN_PROGRESS"
+      sub_status = syn.store(sub_status)
+
+      # Sleep the program when the task is running
+      while task.status == "RUNNING":
+         time.sleep(60)
+         print("task is running")
+         task = api.tasks.get(task_id)
+
+      # Update final submission status
+      if task.status == "INVALID":
+         sub_status.status = "INVALID"
+      elif task.status == "COMPLETED":
+         sub_status.status = "ACCEPTED"
+      else:
+         raise ValueError(f"status {task.status} not supported:")
+      sub_status = syn.store(sub_status)
+
+      task_outputs = task.outputs
+      # Download outputs except for bam files (large)
+      temp_dir = tempfile.TemporaryDirectory()
+      output_files = []
+      for _, output_value in task_outputs.items():
+         if output_value is not None:
+            if not output_value.name.endswith(".bam"):
+               output_file = api.files.get(output_value.id)
+               output_path = os.path.join(temp_dir.name, output_value.name)
+               output_file.download(output_path)
+               output_files.append(output_path)
+
+      # Unfortunately no recursive store function currently...
+      for output_file in output_files:
+         syn.store(
+            synapseclient.File(path=output_file, parent=synapse_task_folder)
+         )
+      temp_dir.cleanup()
 
 
 if __name__ == "__main__":
