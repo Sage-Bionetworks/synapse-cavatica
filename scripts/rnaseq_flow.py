@@ -182,7 +182,9 @@ def monitor_submissions(syn, api):
       # Update final submission status
       if task.status == "INVALID":
          sub_status.status = "INVALID"
-      elif task.status in ["RUNNING", "QUEUED"]:
+      elif task.status == "QUEUED":
+         print("Task is queued")
+      elif task.status == "RUNNING":
          execution_details = task.get_execution_details()
          jobs_completed = [
             job.status == "COMPLETED" for job in execution_details.jobs
