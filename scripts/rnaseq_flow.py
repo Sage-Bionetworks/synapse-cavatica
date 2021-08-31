@@ -184,6 +184,7 @@ def monitor_submissions(syn, api):
          sub_status.status = "INVALID"
       elif task.status == "QUEUED":
          print("Task is queued")
+         continue
       elif task.status == "RUNNING":
          execution_details = task.get_execution_details()
          jobs_completed = [
