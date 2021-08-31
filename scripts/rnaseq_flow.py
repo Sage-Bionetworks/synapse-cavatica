@@ -165,3 +165,7 @@ def main():
          synapseclient.File(path=output_file, parent=synapse_task_folder)
       )
    temp_dir.cleanup()
+
+
+if __name__ == "__main__":
+    main()

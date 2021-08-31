@@ -7,3 +7,7 @@ This repository will house code that assists with the integration between Synaps
 ```bash
 pip install -r requirements.txt
 ```
+
+## Synapse project
+
+This is the demo-synapse project that will house the evaluation queue for now: synapse.org/cavatica
