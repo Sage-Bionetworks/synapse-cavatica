@@ -31,6 +31,7 @@ def main():
         print(f"Generating fastq for: {sra_id}", flush=True)
         fastq_dump_cmd = ['fasterq-dump', sra_id, '-O', 'fastq']
         print(f"The command used was: {' '.join(fastq_dump_cmd)}", flush=True)
+        subprocess.check_call(fastq_dump_cmd)
 
         # Add fastq files
         fastq_files = os.listdir('fastq')
