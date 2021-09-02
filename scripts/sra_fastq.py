@@ -7,7 +7,7 @@ import synapseclient
 
 
 def main():
-
+    """Download FASTQ from GEO and upload into Synapse"""
     syn = synapseclient.login()
     # Get SRA files
     geo_files_synid = "syn25909695"
@@ -52,3 +52,7 @@ def main():
             synapseclient.File(f"{fastq_path}.gz", parent="syn26140163")
         )
         os.remove(f"{fastq_path}.gz")
+
+
+if __name__ == "__main__":
+   main()
