@@ -1,5 +1,6 @@
 """Source from https://erilu.github.io/python-fastq-downloader/
 """
+import os
 import subprocess
 
 import synapseclient
@@ -36,7 +37,18 @@ def main():
         #     "--dumpbase", "--split-3",
         #     "--clip", f"{sra_id}/{sra_id}.sra"
         # ]
-        fastq_dump_cmd = ['fasterq-dump', sra_id]
+        fastq_dump_cmd = ['fasterq-dump', sra_id, '-O', 'fastq']
         print(f"The command used was: {' '.join(fastq_dump_cmd)}")
-        gzip_cmd = ['gzip', f'{sra_id}.fastq']
+
+    # Add fastq file
+    fastq_files = os.listdir('fastq')
+    for fastq in fastq_files:
+        fastq_path = os.path.join('fastq', fastq)
+        gzip_cmd = ['gzip', fastq_path]
+        print(" ".join(gzip_cmd))
         subprocess.check_call(gzip_cmd)
+        print("Storing file")
+        syn.store(
+            synapseclient.File(f"{fastq_path}.gz", parent="syn26140163")
+        )
+        os.remove(f"{fastq_path}.gz")
