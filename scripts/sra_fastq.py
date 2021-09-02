@@ -2,27 +2,41 @@
 """
 import subprocess
 
+import synapseclient
 
-sra_numbers = [
-    "SRR3322281"
-]
 
-# this will download the .sra files to cwd as sra_id/...
-# (will create directory if not present)
-for sra_id in sra_numbers:
-    print(f"Currently downloading: {sra_id}")
-    prefetch_cmd = ["prefetch", sra_id]
-    print(f"The command used was: {' '.join(prefetch_cmd)}")
-    subprocess.check_call(prefetch_cmd)
+def main():
 
-# this will extract the .sra files from above into a folder named 'fastq'
-for sra_id in sra_numbers:
-    print(f"Generating fastq for: {sra_id}")
-    fastq_dump_cmd = [
-        "fastq-dump", "--outdir", "fastq", "--gzip",
-        "--skip-technical", "--readids", "--read-filter", "pass",
-        "--dumpbase", "--split-3",
-        "--clip", f"{sra_id}/{sra_id}.sra"
-    ]
-    print(f"The command used was: {' '.join(fastq_dump_cmd)}")
-    subprocess.check_call(fastq_dump_cmd)
+    syn = synapseclient.login()
+    # Get SRA files
+    geo_files_synid = "syn25909695"
+    sra_files = syn.getChildren(geo_files_synid)
+    sra_numbers = []
+    for sra_file in sra_files:
+        ent = syn.get(sra_file['id'], downloadFile=False)
+        # Get SRA number
+        sra_numbers.append(ent._file_handle['fileName'].replace(".sra", ''))
+
+    # this will download the .sra files to cwd as sra_id/...
+    # (will create directory if not present)
+    for sra_id in sra_numbers:
+        print(f"Currently downloading: {sra_id}")
+        prefetch_cmd = ["prefetch", sra_id]
+        print(f"The command used was: {' '.join(prefetch_cmd)}")
+        subprocess.check_call(prefetch_cmd)
+        # Store SRA file into Synapse
+        # syn.store(synapseclient.File(f"{sra_id}/{sra_id}.sra", parent="syn26140285"))
+
+    # this will extract the .sra files from above into a folder named 'fastq'
+    for sra_id in sra_numbers:
+        print(f"Generating fastq for: {sra_id}")
+        # fastq_dump_cmd = [
+        #     "fastq-dump", "--outdir", "fastq", "--gzip",
+        #     "--skip-technical", "--readids", "--read-filter", "pass",
+        #     "--dumpbase", "--split-3",
+        #     "--clip", f"{sra_id}/{sra_id}.sra"
+        # ]
+        fastq_dump_cmd = ['fasterq-dump', sra_id]
+        print(f"The command used was: {' '.join(fastq_dump_cmd)}")
+        gzip_cmd = ['gzip', f'{sra_id}.fastq']
+        subprocess.check_call(gzip_cmd)
